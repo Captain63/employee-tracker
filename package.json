@@ -1,7 +1,7 @@
 {
   "name": "employee-tracker",
   "version": "1.0.0",
-  "description": "",
+  "description": "Command-line application for managing a database of a company's employees",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
@@ -12,14 +12,15 @@
     "url": "git+https://github.com/Captain63/employee-tracker.git"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "Stephen Roddewig (Captain63)",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/Captain63/employee-tracker/issues"
   },
   "homepage": "https://github.com/Captain63/employee-tracker#readme",
   "dependencies": {
     "console.table": "^0.10.0",
+    "dotenv": "^8.2.0",
     "inquirer": "^8.0.0",
     "mysql": "^2.18.1"
   }
