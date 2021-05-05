@@ -6,25 +6,8 @@ const dotenv = require("dotenv");
 // Reads .env file
 dotenv.config();
 
-const menu = {
-    type: "list",
-    message: "What would you like to do?",
-    // Paths for application
-    choices: [
-        "View employees",
-        "View roles",
-        "View department",
-        "Add employee",
-        "Add roles",
-        "Add department",
-        "Update existing employee's role",
-        "Exit"
-    ],
-    name: "menuResponse"
-}
-
 // Destructure values from db.env file for SQL server connection
-const { DB_HOST, DB_PORT, DB_USER, DB_PASSWORD } = process.env;
+const { DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME } = process.env;
 
 // Establish SQL server
 const connection = mysql.createConnection({
@@ -41,8 +24,25 @@ const connection = mysql.createConnection({
     password: DB_PASSWORD,
 
     // Database name
-    database: 'employee_DB',
+    database: DB_NAME,
 });
+
+const menu = {
+    type: "list",
+    message: "What would you like to do?",
+    // Paths for application
+    choices: [
+        "View employees",
+        "View roles",
+        "View department",
+        "Add employee",
+        "Add roles",
+        "Add department",
+        "Update existing employee's role",
+        "Exit"
+    ],
+    name: "menuResponse"
+}
 
 // viewData function
 const viewData = () => {
