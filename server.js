@@ -1,6 +1,7 @@
 // Install dependencies
 const mysql = require("mysql");
 const inquirer = require("inquirer");
+const cTable = require("console.table");
 const dotenv = require("dotenv");
 
 // Reads .env file
@@ -45,8 +46,25 @@ const menu = {
 }
 
 // viewData function
-const viewData = () => {
+const viewData = (operation) => {
+    switch (operation) {
+        case "employees":
+            connection.query("SELECT first_name, last_name FROM employees", (err, res) => {
+                if (err) throw new Error(err);
 
+                // Displays results to console in table format
+                console.table(res);
+            })
+            break;
+        case "roles":
+            connection.query("SELECT title, salary FROM roles", (err, res) => {
+                if (err) throw new Error(err);
+
+                // Displays results to console in table format
+                console.table(res);
+            })
+            break;
+    }
     // Serves menu for user to specify next action
     showMenu();
 }
@@ -72,9 +90,13 @@ const showMenu = () => {
         .then(response => {
             switch (response.menuResponse) {
                 case "View employees":
-                    viewData();
+                    viewData("employees");
                     break;
 
+                case "View roles":
+                    viewData("roles");
+                    break;
+                
                 case "Exit":
                     // Release connection to SQL server
                     connection.end();
