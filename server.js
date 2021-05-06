@@ -35,7 +35,7 @@ const menu = {
     choices: [
         "View employees",
         "View roles",
-        "View department",
+        "View departments",
         "Add employee",
         "Add roles",
         "Add department",
@@ -49,13 +49,56 @@ const menu = {
 const viewData = (operation) => {
     switch (operation) {
         case "employees":
-            connection.query("SELECT first_name, last_name FROM employees", (err, res) => {
+            // Defines query before passing into connection.query
+            let query =
+                'SELECT employees.id, employees.first_name, employees.last_name, employees.manager_id, roles.title, roles.salary, departments.name ';
+            query +=
+                'FROM employees INNER JOIN roles ON employees.role_id = roles.id ';
+            query +=
+                'INNER JOIN departments ON roles.department_id = departments.id ORDER BY employees.id';
+            
+            // Retrieves data from SQL serverew
+            connection.query(query, (err, res) => {
                 if (err) throw new Error(err);
 
-                // Displays results to console in table format
-                console.table(res);
+                // Assigning resulting data to employeeData variable
+                const employeeData = res;
+
+                // Initializing empty array to host reformatted employee data
+                const updatedEmployeeArray = [];
+
+                // Destructures each record for reformatting
+                employeeData.forEach(({ id, first_name, last_name, manager_id, title, salary, name }) => {
+                    // Checks that manager_id property is not null
+                    if (manager_id) {
+                        // Pulls index number of employee record whose id matches the manager id
+                        const managerIndex = employeeData.findIndex(item => item.id === manager_id);
+
+                        // Rewrites manager_id property to show first and last name of manager instead of manager_id
+                        manager_id = `${employeeData[managerIndex].first_name} ${employeeData[managerIndex].last_name}` 
+                    } else {
+                        manager_id = "No manager";
+                    }
+
+                    // Assigns new names for each table column
+                    updatedEmployeeArray.push(
+                        {
+                            id: id,
+                            "first name": first_name,
+                            "last name": last_name,
+                            "manager id": manager_id,
+                            title: title,
+                            salary: salary,
+                            department: name
+                        }
+                    );
+                })
+
+                // Displays reformatted employee records to console in table format
+                console.table(updatedEmployeeArray);
             })
             break;
+
         case "roles":
             connection.query("SELECT title, salary FROM roles", (err, res) => {
                 if (err) throw new Error(err);
@@ -65,6 +108,7 @@ const viewData = (operation) => {
             })
             break;
     }
+
     // Serves menu for user to specify next action
     showMenu();
 }
