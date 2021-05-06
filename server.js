@@ -36,6 +36,7 @@ const menu = {
         "View employees",
         "View roles",
         "View departments",
+        "View employees by manager",
         "Add employee",
         "Add roles",
         "Add department",
@@ -48,23 +49,25 @@ const menu = {
 // viewData function
 const viewData = (operation) => {
     switch (operation) {
+
+        // Show all employees
         case "employees":
             // Defines query before passing into connection.query
-            let query =
+            let query1 =
                 'SELECT employees.id, employees.first_name, employees.last_name, employees.manager_id, roles.title, roles.salary, departments.name ';
-            query +=
+            query1 +=
                 'FROM employees INNER JOIN roles ON employees.role_id = roles.id ';
-            query +=
+            query1 +=
                 'INNER JOIN departments ON roles.department_id = departments.id ORDER BY employees.id';
             
             // Retrieves data from SQL serverew
-            connection.query(query, (err, res) => {
+            connection.query(query1, (err, res) => {
                 if (err) throw new Error(err);
 
-                // Assigning resulting data to employeeData variable
+                // Assigns resulting data to employeeData variable
                 const employeeData = res;
 
-                // Initializing empty array to host reformatted employee data
+                // Initializes empty array to host reformatted employee data
                 const updatedEmployeeArray = [];
 
                 // Destructures each record for reformatting
@@ -99,12 +102,92 @@ const viewData = (operation) => {
             })
             break;
 
+        // Show all roles
         case "roles":
-            connection.query("SELECT title, salary FROM roles", (err, res) => {
+            connection.query("SELECT id, title, salary FROM roles", (err, res) => {
                 if (err) throw new Error(err);
 
                 // Displays results to console in table format
                 console.table(res);
+            })
+            break;
+
+        // Show all departments
+        case "departments":
+            connection.query("SELECT id, name FROM departments", (err, res) => {
+                if (err) throw new Error(err);
+
+                // Assigns resulting data to deptData variable
+                const deptData = res;
+
+                // Initializes empty array to host reformatted department data
+                const updatedDeptArray = [];
+
+                deptData.forEach(({ id, name }) => {
+                    updatedDeptArray.push(
+                        // Assigns new column names for data
+                        {
+                            id: id,
+                            department: name
+                        }
+                    );
+                })
+
+                // Displays results to console in table format
+                console.table(updatedDeptArray);
+            })
+            break;
+
+        // Show employees by manager
+        case "employees by manager":
+            let query2 =
+                'SELECT employees.manager_id, employees.id, employees.first_name, employees.last_name, roles.title, departments.name ';
+            query2 +=
+                'FROM employees INNER JOIN roles ON employees.role_id = roles.id ';
+            query2 +=
+                'INNER JOIN departments ON roles.department_id = departments.id ORDER BY employees.manager_id';
+            
+            connection.query(query2, (err, res) => {
+                if (err) throw new Error(err);
+
+                // Assigns resulting data to managerData variable
+                const managerData = res;
+
+                // Initializes empty array to host reformatted manager + employee data
+                const updatedManagerArray = [];
+
+                // Destructures each record for reformatting
+                managerData.forEach(({ manager_id, id, first_name, last_name, title, name }) => {
+                    // Checks that manager_id is not null
+                    if (manager_id) {
+                        // Pulls index number of employee record whose id matches the manager id
+                        const managerIndex = managerData.findIndex(item => item.id === manager_id);
+
+                        // Rewrites manager_id property to show first and last name of manager instead of manager_id
+                        manager_id = `${managerData[managerIndex].first_name} ${managerData[managerIndex].last_name}`
+
+                        // Assigns manager_title to title property of employee record at manager's index
+                        const manager_title = managerData[managerIndex].title;
+
+                        // Assigns new names for columns with reformatted data
+                        updatedManagerArray.push(
+                            {
+                                manager: manager_id,
+                                manager_title: manager_title,
+                                // Combines name of destructured employee record
+                                employee: `${first_name} ${last_name}`,
+                                employee_title: title,
+                                department: name
+                            }
+                        )
+                    } else {
+                        // Prevents records with "null" values for manager_id from being pushed into updatedManagerArray
+                        return;
+                    }
+                })
+
+                // Displays reformatted manager + employee records to console in table format
+                console.table(updatedManagerArray);
             })
             break;
     }
@@ -127,6 +210,7 @@ const updateData = () => {
     showMenu();
 }
 
+// Central function to control user workflow
 const showMenu = () => {
     // Calls inquirer to serve menu to user
     inquirer
@@ -139,6 +223,14 @@ const showMenu = () => {
 
                 case "View roles":
                     viewData("roles");
+                    break;
+
+                case "View departments":
+                    viewData("departments");
+                    break;
+
+                case "View employees by manager":
+                    viewData("employees by manager");
                     break;
                 
                 case "Exit":
