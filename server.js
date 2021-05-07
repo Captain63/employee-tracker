@@ -5,6 +5,7 @@ const cTable = require("console.table");
 // Import connection.js module for SQL server connection
 const connection = require("./config/connection");
 
+// Object for showMenu to run inquirer
 const menu = {
     type: "list",
     message: "What would you like to do?",
@@ -17,7 +18,7 @@ const menu = {
         "Add employee",
         "Add role",
         "Add department",
-        "Update existing employee's role",
+        "Update employee role",
         "Exit"
     ],
     name: "menuResponse"
@@ -176,6 +177,7 @@ const viewData = operation => {
     showMenu();
 }
 
+// Pulls array of employee names from employees table
 const pullEmployees = () => {       
     const choicesArray = [];
 
@@ -188,6 +190,7 @@ const pullEmployees = () => {
     return choicesArray;
 }
 
+// Pulls array of titles from roles table
 const pullRoles = () => {
     const choicesArray = [];
 
@@ -200,6 +203,7 @@ const pullRoles = () => {
     return choicesArray;
 }
 
+// Pulls array of names from departments table
 const pullDepartments = () => {
     const choicesArray = [];
 
@@ -215,17 +219,20 @@ const pullDepartments = () => {
 // addData function
 const addData = operation => {
     switch (operation) {
+
+        // Add a new employee
         case "employee":
             inquirer
+                // Collect user inputs
                 .prompt([
                         {
                             type: "input",
-                            message: "Enter employee's first name:",
+                            message: "Enter Employee's first name:",
                             name: "firstName"
                         },
                         {
                             type: "input",
-                            message: "Enter employee's last name:",
+                            message: "Enter Employee's last name:",
                             name: "lastName"
                         },
                         {
@@ -243,6 +250,7 @@ const addData = operation => {
                     ])
                 .then(response => {
                     
+                    // Object to hold responses and matching ids from below evaluations
                     const tableSubmission = {
                         first_name: response.firstName,
                         last_name: response.lastName,
@@ -250,29 +258,37 @@ const addData = operation => {
                         role_id: 0
                     }
 
+                    // Pulls names and ids from employees table
                     connection.query("SELECT id, first_name, last_name FROM employees", (err, res) => {
                         if (err) throw new Error(err);
 
                         res.forEach(result => {
+                            // Matches first and last name from table to split selection from user input
                             if (result.first_name === response.manager.split(" ")[0] && result.last_name === response.manager.split(" ")[1]) {
+                                // Assigns table id to object
                                 tableSubmission.manager_id = result.id;
                             }
                         })
 
+                        // Pulls titles and ids from roles table
                         connection.query("SELECT id, title FROM roles", (err, res) => {
                             if (err) throw new Error(err);
     
+                            // Matches name of title from user selection to table title
                             res.forEach(result => {
                                 if (result.title === response.roleName) {
+                                    // Assigns table id to object
                                     tableSubmission.role_id = result.id;
                                 }
                             })
     
+                            // Adds new record with specified columns and values
                             connection.query("INSERT INTO employee_db.employees SET ?", tableSubmission, (err) => {
                                 if (err) throw new Error(err);
         
                                 console.log("Employee added!");
 
+                                // Serves menu for next user input
                                 showMenu();
                             })
                         })
@@ -280,23 +296,28 @@ const addData = operation => {
                 })
             break;
 
+        // Add a new role
         case "role":
             inquirer
+                // Collect user inputs
                 .prompt([
                         {
                             type: "input",
-                            message: "Enter title for role:",
+                            message: "Enter title for Role:",
                             name: "role"
                         },
                         {
                             type: "input",
                             message: "Enter salary:",
                             name: "salary",
+                            // Validates that user has input number
                             validate(value) {
                                 if (isNaN(value) === false) {
                                     return true;
                                 }
-                                console.log("Please input number!");
+
+                                // Log error so user can update value
+                                console.log(" --Please input number-- ");
                                 return false;
                             }
                         },
@@ -309,67 +330,81 @@ const addData = operation => {
                     ])
                 .then(response => {
 
+                    // Object to hold responses and matching id from below evaluation
                     const tableSubmission = {
                         title: response.role,
                         salary: response.salary,
                         department_id: 0
                     }
 
+                    // Pulls current list of department names
                     connection.query("SELECT id, name FROM departments", (err, res) => {
                         if (err) throw new Error(err);
 
+                        // Matches department name of user selection to department name of table and assigns department id
                         res.forEach(result => {
                             if (result.name === response.department) {
                                 tableSubmission.department_id = result.id;
                             }
                         })
 
+                        // Adds new record with specified columns and values
                         connection.query("INSERT INTO employee_db.roles SET ?", tableSubmission, (err) => {
                             if (err) throw new Error(err);
         
                             console.log("Role added!");
 
+                            // Serves menu for next user input
                             showMenu();
                         })
                     })
                 })
             break;
 
+        // Add a new department
         case "department":
             inquirer
+                // Prompts user to enter new department name
                 .prompt({
                     type: "input",
-                    message: "Enter Department name:",
+                    message: "Enter new Department name:",
                     name: "department"
                 })
                 .then(response => {
+                    // Inserts new name into departments table
                     connection.query("INSERT INTO employee_db.departments (name) VALUES (?)", response.department, (err) => {
                         if (err) throw new Error(err);
 
+                        // Confirms successful update for user
                         console.log("Department added!");
 
+                        // Serves menu for next user input
                         showMenu();
                     })
                 })
             break;
-    }
-    
+    } 
 }
 
 // updateData function
 const updateData = (operation) => {
     switch (operation) {
+
+        // Update existing employee's role
         case "role":
+            // Pulls current employee names from employees table
             connection.query("SELECT first_name, last_name FROM employees", (err, res1) => {
                 if (err) throw new Error(err);
 
                 const employeesArray = res1.map(({ first_name, last_name }) => `${first_name} ${last_name}`);
 
+                // Pulls current titles from roles table
                 connection.query("SELECT title FROM roles", (err, res2) => {
                     if (err) throw new Error(err);
 
                     const rolesArray = res2.map(({ title }) => title);
 
+                    // Prompts user to choose employee from list of existing employees and then choose role to switch to from list of exisitng roles
                     inquirer
                     .prompt([
                         {
@@ -386,6 +421,8 @@ const updateData = (operation) => {
                         }
                     ])
                     .then(response => {
+
+                        // Object to hold matches from below queries
                         const tableSubmission = {
                             id: 0,
                             role_id: 0
@@ -394,6 +431,7 @@ const updateData = (operation) => {
                         connection.query("SELECT id, first_name, last_name FROM employees", (err, res) => {
                             if (err) throw new Error(err);
     
+                            // Stores ID of employee from table that matches the first and last name from user selection
                             res.forEach(result => {
                                 if (result.first_name === response.employee.split(" ")[0] && result.last_name === response.employee.split(" ")[1]) {
                                     tableSubmission.id = result.id;
@@ -403,17 +441,21 @@ const updateData = (operation) => {
                             connection.query("SELECT id, title FROM roles", (err, res) => {
                                 if (err) throw new Error(err);
         
+                                // Stores ID of title from table that matches title from user selection
                                 res.forEach(result => {
                                     if (result.title === response.newRole) {
                                         tableSubmission.role_id = result.id;
                                     }
                                 })
         
+                                // Updates role_id for correpsonding employee ID
                                 connection.query("UPDATE employee_db.employees SET role_id = ? WHERE id = ?", [tableSubmission.role_id, tableSubmission.id], (err) => {
                                     if (err) throw new Error(err);
             
+                                    // Confirms successful update for user
                                     console.log("Role updated!");
     
+                                    // Serves menu for next user input
                                     showMenu();
                                 })
                             })
@@ -433,6 +475,7 @@ const showMenu = () => {
     inquirer
         .prompt(menu)
         .then(response => {
+            // Serves paths based on user response
             switch (response.menuResponse) {
                 case "View employees":
                     viewData("employees");
@@ -462,7 +505,7 @@ const showMenu = () => {
                     addData("department");
                     break;
                 
-                case "Update existing employee's role":
+                case "Update employee role":
                     updateData("role");
                     break;
                 
