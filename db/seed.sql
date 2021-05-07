@@ -1,3 +1,4 @@
+-- NOTE: if database is already live, then running this command will erase existing data
 DROP DATABASE IF EXISTS employee_DB;
 
 CREATE DATABASE employee_DB;
