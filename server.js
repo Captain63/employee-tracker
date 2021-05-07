@@ -38,7 +38,7 @@ const menu = {
         "View departments",
         "View employees by manager",
         "Add employee",
-        "Add roles",
+        "Add role",
         "Add department",
         "Update existing employee's role",
         "Exit"
@@ -223,6 +223,18 @@ const pullRoles = () => {
     return choicesArray;
 }
 
+const pullDepartments = () => {
+    const choicesArray = [];
+
+    connection.query("SELECT name FROM departments", (err, res) => {
+        if (err) throw new Error(err);
+                
+        res.forEach(({ name }) => choicesArray.push(name));
+    })
+
+    return choicesArray;
+}
+
 // addData function
 const addData = operation => {
     switch (operation) {
@@ -253,8 +265,7 @@ const addData = operation => {
                         },
                     ])
                 .then(response => {
-                    console.log(response);
-
+                    
                     const tableSubmission = {
                         first_name: response.firstName,
                         last_name: response.lastName,
@@ -284,27 +295,95 @@ const addData = operation => {
                                 if (err) throw new Error(err);
         
                                 console.log("Employee added!");
+
+                                showMenu();
                             })
                         })
                     })
-
-                    showMenu();
                 })
             break;
 
         case "role":
+            inquirer
+                .prompt([
+                        {
+                            type: "input",
+                            message: "Enter title for role:",
+                            name: "role"
+                        },
+                        {
+                            type: "number",
+                            message: "Enter salary:",
+                            name: "salary",
+                            validate(value) {
+                                if (isNaN(value) === false) {
+                                    return true;
+                                }
+                                return false;
+                            }
+                        },
+                        {
+                            type: "list",
+                            message: "Select Department:",
+                            choices: pullDepartments(),
+                            name: "department"
+                        }
+                    ])
+                .then(response => {
+
+                    const tableSubmission = {
+                        title: response.role,
+                        salary: response.salary,
+                        department_id: 0
+                    }
+
+                    connection.query("SELECT id, name FROM departments", (err, res) => {
+                        if (err) throw new Error(err);
+
+                        res.forEach(result => {
+                            if (result.name === response.department) {
+                                tableSubmission.department_id = result.id;
+                            }
+                        })
+
+                        connection.query("INSERT INTO employee_db.roles SET ?", tableSubmission, (err) => {
+                            if (err) throw new Error(err);
+        
+                            console.log("Role added!");
+
+                            showMenu();
+                        })
+                    })
+                })
             break;
 
         case "department":
+            inquirer
+                .prompt({
+                    type: "input",
+                    message: "Enter Department name:",
+                    name: "department"
+                })
+                .then(response => {
+                    connection.query("INSERT INTO employee_db.departments (name) VALUES (?)", response.department, (err) => {
+                        if (err) throw new Error(err);
+
+                        console.log("Department added!");
+
+                        showMenu();
+                    })
+                })
             break;
     }
-
-    // Serves menu for user to specify next action
     
 }
 
 // updateData function
-const updateData = () => {
+const updateData = (operation) => {
+    switch (operation) {
+        case "role":
+            break;
+    }
 
     // Serves menu for user to specify next action
     showMenu();
@@ -359,8 +438,6 @@ const showMenu = () => {
             }
         })
 }
-
-// connection.end();
 
 // Establish SQL server connection before initiating menu prompts
 connection.connect((err) => {
