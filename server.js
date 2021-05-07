@@ -3,6 +3,7 @@ const mysql = require("mysql");
 const inquirer = require("inquirer");
 const cTable = require("console.table");
 const dotenv = require("dotenv");
+const util = require("util");
 
 // Reads .env file
 dotenv.config();
@@ -38,7 +39,7 @@ const menu = {
         "View departments",
         "View employees by manager",
         "Add employee",
-        "Add roles",
+        "Add role",
         "Add department",
         "Update existing employee's role",
         "Exit"
@@ -47,7 +48,7 @@ const menu = {
 }
 
 // viewData function
-const viewData = (operation) => {
+const viewData = operation => {
     switch (operation) {
 
         // Show all employees
@@ -89,7 +90,7 @@ const viewData = (operation) => {
                             id: id,
                             "first name": first_name,
                             "last name": last_name,
-                            "manager id": manager_id,
+                            "manager name": manager_id,
                             title: title,
                             salary: salary,
                             department: name
@@ -110,6 +111,7 @@ const viewData = (operation) => {
                 // Displays results to console in table format
                 console.table(res);
             })
+
             break;
 
         // Show all departments
@@ -136,6 +138,7 @@ const viewData = (operation) => {
                 // Displays results to console in table format
                 console.table(updatedDeptArray);
             })
+
             break;
 
         // Show employees by manager
@@ -189,25 +192,263 @@ const viewData = (operation) => {
                 // Displays reformatted manager + employee records to console in table format
                 console.table(updatedManagerArray);
             })
-            break;
+
+            break;     
     }
 
     // Serves menu for user to specify next action
     showMenu();
 }
 
-// addData function
-const addData = () => {
+const pullEmployees = () => {       
+    const choicesArray = [];
 
-    // Serves menu for user to specify next action
-    showMenu();
+    connection.query("SELECT first_name, last_name FROM employees", (err, res) => {
+        if (err) throw new Error(err);
+                            
+        res.forEach(({ first_name, last_name }) => choicesArray.push(`${first_name} ${last_name}`));
+    })
+
+    return choicesArray;
+}
+
+const pullRoles = () => {
+    const choicesArray = [];
+
+    connection.query("SELECT title FROM roles", (err, res) => {
+        if (err) throw new Error(err);
+                
+        res.forEach(({ title }) => choicesArray.push(title));
+    })
+
+    return choicesArray;
+}
+
+const pullDepartments = () => {
+    const choicesArray = [];
+
+    connection.query("SELECT name FROM departments", (err, res) => {
+        if (err) throw new Error(err);
+                
+        res.forEach(({ name }) => choicesArray.push(name));
+    })
+
+    return choicesArray;
+}
+
+// addData function
+const addData = operation => {
+    switch (operation) {
+        case "employee":
+            inquirer
+                .prompt([
+                        {
+                            type: "input",
+                            message: "Enter employee's first name:",
+                            name: "firstName"
+                        },
+                        {
+                            type: "input",
+                            message: "Enter employee's last name:",
+                            name: "lastName"
+                        },
+                        {
+                            type: "list",
+                            message: "Select Role:",
+                            choices: pullRoles(),
+                            name: "roleName"
+                        },
+                        {
+                            type: "list",
+                            message: "Select Manager:",
+                            choices: pullEmployees(),
+                            name: "manager"
+                        },
+                    ])
+                .then(response => {
+                    
+                    const tableSubmission = {
+                        first_name: response.firstName,
+                        last_name: response.lastName,
+                        manager_id: 0,
+                        role_id: 0
+                    }
+
+                    connection.query("SELECT id, first_name, last_name FROM employees", (err, res) => {
+                        if (err) throw new Error(err);
+
+                        res.forEach(result => {
+                            if (result.first_name === response.manager.split(" ")[0] && result.last_name === response.manager.split(" ")[1]) {
+                                tableSubmission.manager_id = result.id;
+                            }
+                        })
+
+                        connection.query("SELECT id, title FROM roles", (err, res) => {
+                            if (err) throw new Error(err);
+    
+                            res.forEach(result => {
+                                if (result.title === response.roleName) {
+                                    tableSubmission.role_id = result.id;
+                                }
+                            })
+    
+                            connection.query("INSERT INTO employee_db.employees SET ?", tableSubmission, (err) => {
+                                if (err) throw new Error(err);
+        
+                                console.log("Employee added!");
+
+                                showMenu();
+                            })
+                        })
+                    })
+                })
+            break;
+
+        case "role":
+            inquirer
+                .prompt([
+                        {
+                            type: "input",
+                            message: "Enter title for role:",
+                            name: "role"
+                        },
+                        {
+                            type: "input",
+                            message: "Enter salary:",
+                            name: "salary",
+                            validate(value) {
+                                if (isNaN(value) === false) {
+                                    return true;
+                                }
+                                console.log("Please input number!");
+                                return false;
+                            }
+                        },
+                        {
+                            type: "list",
+                            message: "Select Department:",
+                            choices: pullDepartments(),
+                            name: "department"
+                        }
+                    ])
+                .then(response => {
+
+                    const tableSubmission = {
+                        title: response.role,
+                        salary: response.salary,
+                        department_id: 0
+                    }
+
+                    connection.query("SELECT id, name FROM departments", (err, res) => {
+                        if (err) throw new Error(err);
+
+                        res.forEach(result => {
+                            if (result.name === response.department) {
+                                tableSubmission.department_id = result.id;
+                            }
+                        })
+
+                        connection.query("INSERT INTO employee_db.roles SET ?", tableSubmission, (err) => {
+                            if (err) throw new Error(err);
+        
+                            console.log("Role added!");
+
+                            showMenu();
+                        })
+                    })
+                })
+            break;
+
+        case "department":
+            inquirer
+                .prompt({
+                    type: "input",
+                    message: "Enter Department name:",
+                    name: "department"
+                })
+                .then(response => {
+                    connection.query("INSERT INTO employee_db.departments (name) VALUES (?)", response.department, (err) => {
+                        if (err) throw new Error(err);
+
+                        console.log("Department added!");
+
+                        showMenu();
+                    })
+                })
+            break;
+    }
+    
 }
 
 // updateData function
-const updateData = () => {
+const updateData = (operation) => {
+    switch (operation) {
+        case "role":
+            connection.query("SELECT first_name, last_name FROM employees", (err, res1) => {
+                if (err) throw new Error(err);
 
-    // Serves menu for user to specify next action
-    showMenu();
+                const employeesArray = res1.map(({ first_name, last_name }) => `${first_name} ${last_name}`);
+
+                connection.query("SELECT title FROM roles", (err, res2) => {
+                    if (err) throw new Error(err);
+
+                    const rolesArray = res2.map(({ title }) => title);
+
+                    inquirer
+                    .prompt([
+                        {
+                            type: "list",
+                            message: "Select Employee:",
+                            choices: employeesArray,
+                            name: "employee"
+                        },
+                        {
+                            type: "list",
+                            message: "Select new Role:",
+                            choices: rolesArray,
+                            name: "newRole"
+                        }
+                    ])
+                    .then(response => {
+                        const tableSubmission = {
+                            id: 0,
+                            role_id: 0
+                        }
+    
+                        connection.query("SELECT id, first_name, last_name FROM employees", (err, res) => {
+                            if (err) throw new Error(err);
+    
+                            res.forEach(result => {
+                                if (result.first_name === response.employee.split(" ")[0] && result.last_name === response.employee.split(" ")[1]) {
+                                    tableSubmission.id = result.id;
+                                }
+                            })
+    
+                            connection.query("SELECT id, title FROM roles", (err, res) => {
+                                if (err) throw new Error(err);
+        
+                                res.forEach(result => {
+                                    if (result.title === response.newRole) {
+                                        tableSubmission.role_id = result.id;
+                                    }
+                                })
+        
+                                connection.query("UPDATE employee_db.employees SET role_id = ? WHERE id = ?", [tableSubmission.role_id, tableSubmission.id], (err) => {
+                                    if (err) throw new Error(err);
+            
+                                    console.log("Role updated!");
+    
+                                    showMenu();
+                                })
+                            })
+                        })
+                    })
+                })
+            })
+
+            
+            break;
+    }
 }
 
 // Central function to control user workflow
@@ -231,6 +472,22 @@ const showMenu = () => {
 
                 case "View employees by manager":
                     viewData("employees by manager");
+                    break;
+
+                case "Add employee":
+                    addData("employee");
+                    break;
+
+                case "Add role":
+                    addData("role");
+                    break;
+                
+                case "Add department":
+                    addData("department");
+                    break;
+                
+                case "Update existing employee's role":
+                    updateData("role");
                     break;
                 
                 case "Exit":
