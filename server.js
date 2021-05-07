@@ -3,6 +3,7 @@ const mysql = require("mysql");
 const inquirer = require("inquirer");
 const cTable = require("console.table");
 const dotenv = require("dotenv");
+const util = require("util");
 
 // Reads .env file
 dotenv.config();
@@ -199,13 +200,13 @@ const viewData = operation => {
     showMenu();
 }
 
-const pullEmployees = () => {
+const pullEmployees = () => {       
     const choicesArray = [];
-                    
+
     connection.query("SELECT first_name, last_name FROM employees", (err, res) => {
         if (err) throw new Error(err);
-                
-        res.forEach(({ first_name, last_name}) => choicesArray.push(`${first_name} ${last_name}`));
+                            
+        res.forEach(({ first_name, last_name }) => choicesArray.push(`${first_name} ${last_name}`));
     })
 
     return choicesArray;
@@ -312,13 +313,14 @@ const addData = operation => {
                             name: "role"
                         },
                         {
-                            type: "number",
+                            type: "input",
                             message: "Enter salary:",
                             name: "salary",
                             validate(value) {
                                 if (isNaN(value) === false) {
                                     return true;
                                 }
+                                console.log("Please input number!");
                                 return false;
                             }
                         },
@@ -382,11 +384,71 @@ const addData = operation => {
 const updateData = (operation) => {
     switch (operation) {
         case "role":
+            connection.query("SELECT first_name, last_name FROM employees", (err, res1) => {
+                if (err) throw new Error(err);
+
+                const employeesArray = res1.map(({ first_name, last_name }) => `${first_name} ${last_name}`);
+
+                connection.query("SELECT title FROM roles", (err, res2) => {
+                    if (err) throw new Error(err);
+
+                    const rolesArray = res2.map(({ title }) => title);
+
+                    inquirer
+                    .prompt([
+                        {
+                            type: "list",
+                            message: "Select Employee:",
+                            choices: employeesArray,
+                            name: "employee"
+                        },
+                        {
+                            type: "list",
+                            message: "Select new Role:",
+                            choices: rolesArray,
+                            name: "newRole"
+                        }
+                    ])
+                    .then(response => {
+                        const tableSubmission = {
+                            id: 0,
+                            role_id: 0
+                        }
+    
+                        connection.query("SELECT id, first_name, last_name FROM employees", (err, res) => {
+                            if (err) throw new Error(err);
+    
+                            res.forEach(result => {
+                                if (result.first_name === response.employee.split(" ")[0] && result.last_name === response.employee.split(" ")[1]) {
+                                    tableSubmission.id = result.id;
+                                }
+                            })
+    
+                            connection.query("SELECT id, title FROM roles", (err, res) => {
+                                if (err) throw new Error(err);
+        
+                                res.forEach(result => {
+                                    if (result.title === response.newRole) {
+                                        tableSubmission.role_id = result.id;
+                                    }
+                                })
+        
+                                connection.query("UPDATE employee_db.employees SET role_id = ? WHERE id = ?", [tableSubmission.role_id, tableSubmission.id], (err) => {
+                                    if (err) throw new Error(err);
+            
+                                    console.log("Role updated!");
+    
+                                    showMenu();
+                                })
+                            })
+                        })
+                    })
+                })
+            })
+
+            
             break;
     }
-
-    // Serves menu for user to specify next action
-    showMenu();
 }
 
 // Central function to control user workflow
