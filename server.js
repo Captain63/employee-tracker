@@ -76,7 +76,7 @@ const viewData = operation => {
                 })
 
                 // Displays reformatted employee records to console in table format
-                console.table(updatedEmployeeArray);
+                console.table("\n", updatedEmployeeArray, "\n");
             })
             break;
 
@@ -86,7 +86,7 @@ const viewData = operation => {
                 if (err) throw new Error(err);
 
                 // Displays results to console in table format
-                console.table(res);
+                console.table("\n", res, "\n");
             })
 
             break;
@@ -113,7 +113,7 @@ const viewData = operation => {
                 })
 
                 // Displays results to console in table format
-                console.table(updatedDeptArray);
+                console.table("\n", updatedDeptArray, "\n");
             })
 
             break;
@@ -167,7 +167,7 @@ const viewData = operation => {
                 })
 
                 // Displays reformatted manager + employee records to console in table format
-                console.table(updatedManagerArray);
+                console.table("\n", updatedManagerArray, "\n");
             })
 
             break;     
