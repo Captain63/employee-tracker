@@ -1,33 +1,9 @@
 // Install dependencies
-const mysql = require("mysql");
 const inquirer = require("inquirer");
 const cTable = require("console.table");
-const dotenv = require("dotenv");
-const util = require("util");
 
-// Reads .env file
-dotenv.config();
-
-// Destructure values from db.env file for SQL server connection
-const { DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME } = process.env;
-
-// Establish SQL server
-const connection = mysql.createConnection({
-    
-    host: DB_HOST,
-  
-    // Port
-    port: DB_PORT,
-  
-    // Username
-    user: DB_USER,
-  
-    // Be sure to update with your own MySQL password!
-    password: DB_PASSWORD,
-
-    // Database name
-    database: DB_NAME,
-});
+// Import connection.js module for SQL server connection
+const connection = require("./config/connection");
 
 const menu = {
     type: "list",
