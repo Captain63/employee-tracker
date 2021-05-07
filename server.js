@@ -77,6 +77,9 @@ const viewData = operation => {
 
                 // Displays reformatted employee records to console in table format
                 console.table("\n", updatedEmployeeArray, "\n");
+
+                // Serves menu for user to specify next action
+                showMenu();
             })
             break;
 
@@ -87,6 +90,9 @@ const viewData = operation => {
 
                 // Displays results to console in table format
                 console.table("\n", res, "\n");
+
+                // Serves menu for user to specify next action
+                showMenu();
             })
 
             break;
@@ -114,6 +120,9 @@ const viewData = operation => {
 
                 // Displays results to console in table format
                 console.table("\n", updatedDeptArray, "\n");
+
+                // Serves menu for user to specify next action
+                showMenu();
             })
 
             break;
@@ -168,13 +177,13 @@ const viewData = operation => {
 
                 // Displays reformatted manager + employee records to console in table format
                 console.table("\n", updatedManagerArray, "\n");
+
+                // Serves menu for user to specify next action
+                showMenu();
             })
 
             break;     
     }
-
-    // Serves menu for user to specify next action
-    showMenu();
 }
 
 // Pulls array of employee names from employees table
