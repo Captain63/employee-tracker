@@ -47,7 +47,7 @@ const menu = {
 }
 
 // viewData function
-const viewData = (operation) => {
+const viewData = operation => {
     switch (operation) {
 
         // Show all employees
@@ -89,7 +89,7 @@ const viewData = (operation) => {
                             id: id,
                             "first name": first_name,
                             "last name": last_name,
-                            "manager id": manager_id,
+                            "manager name": manager_id,
                             title: title,
                             salary: salary,
                             department: name
@@ -110,6 +110,7 @@ const viewData = (operation) => {
                 // Displays results to console in table format
                 console.table(res);
             })
+
             break;
 
         // Show all departments
@@ -136,6 +137,7 @@ const viewData = (operation) => {
                 // Displays results to console in table format
                 console.table(updatedDeptArray);
             })
+
             break;
 
         // Show employees by manager
@@ -189,18 +191,116 @@ const viewData = (operation) => {
                 // Displays reformatted manager + employee records to console in table format
                 console.table(updatedManagerArray);
             })
-            break;
+
+            break;     
     }
 
     // Serves menu for user to specify next action
     showMenu();
 }
 
+const pullEmployees = () => {
+    const choicesArray = [];
+                    
+    connection.query("SELECT first_name, last_name FROM employees", (err, res) => {
+        if (err) throw new Error(err);
+                
+        res.forEach(({ first_name, last_name}) => choicesArray.push(`${first_name} ${last_name}`));
+    })
+
+    return choicesArray;
+}
+
+const pullRoles = () => {
+    const choicesArray = [];
+
+    connection.query("SELECT title FROM roles", (err, res) => {
+        if (err) throw new Error(err);
+                
+        res.forEach(({ title }) => choicesArray.push(title));
+    })
+
+    return choicesArray;
+}
+
 // addData function
-const addData = () => {
+const addData = operation => {
+    switch (operation) {
+        case "employee":
+            inquirer
+                .prompt([
+                        {
+                            type: "input",
+                            message: "Enter employee's first name:",
+                            name: "firstName"
+                        },
+                        {
+                            type: "input",
+                            message: "Enter employee's last name:",
+                            name: "lastName"
+                        },
+                        {
+                            type: "list",
+                            message: "Select Role:",
+                            choices: pullRoles(),
+                            name: "roleName"
+                        },
+                        {
+                            type: "list",
+                            message: "Select Manager:",
+                            choices: pullEmployees(),
+                            name: "manager"
+                        },
+                    ])
+                .then(response => {
+                    console.log(response);
+
+                    const tableSubmission = {
+                        first_name: response.firstName,
+                        last_name: response.lastName,
+                        manager_id: 0,
+                        role_id: 0
+                    }
+
+                    connection.query("SELECT id, first_name, last_name FROM employees", (err, res) => {
+                        if (err) throw new Error(err);
+
+                        res.forEach(result => {
+                            if (result.first_name === response.manager.split(" ")[0] && result.last_name === response.manager.split(" ")[1]) {
+                                tableSubmission.manager_id = result.id;
+                            }
+                        })
+
+                        connection.query("SELECT id, title FROM roles", (err, res) => {
+                            if (err) throw new Error(err);
+    
+                            res.forEach(result => {
+                                if (result.title === response.roleName) {
+                                    tableSubmission.role_id = result.id;
+                                }
+                            })
+    
+                            connection.query("INSERT INTO employee_db.employees SET ?", tableSubmission, (err) => {
+                                if (err) throw new Error(err);
+        
+                                console.log("Employee added!");
+                            })
+                        })
+                    })
+
+                    showMenu();
+                })
+            break;
+
+        case "role":
+            break;
+
+        case "department":
+            break;
+    }
 
     // Serves menu for user to specify next action
-    showMenu();
+    
 }
 
 // updateData function
@@ -232,6 +332,22 @@ const showMenu = () => {
                 case "View employees by manager":
                     viewData("employees by manager");
                     break;
+
+                case "Add employee":
+                    addData("employee");
+                    break;
+
+                case "Add role":
+                    addData("role");
+                    break;
+                
+                case "Add department":
+                    addData("department");
+                    break;
+                
+                case "Update existing employee's role":
+                    updateData("role");
+                    break;
                 
                 case "Exit":
                     // Release connection to SQL server
@@ -243,6 +359,8 @@ const showMenu = () => {
             }
         })
 }
+
+// connection.end();
 
 // Establish SQL server connection before initiating menu prompts
 connection.connect((err) => {
